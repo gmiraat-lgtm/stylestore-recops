@@ -27,3 +27,12 @@ evaluate:
   k: 10
   holdout_per_user: 3
   metrics_out: reports/metrics.json
+
+monitor:
+  reference: data/interim/events_valid.csv
+  catalog: data/raw/products.csv
+  report_html: reports/drift/drift_report.html
+  status_json: reports/drift/drift_status.json
+  drift_share_threshold: 0.3
+  reference_sample: 30000
+

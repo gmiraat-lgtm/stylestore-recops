@@ -1,10 +1,10 @@
 {
-  "rows_in": 200297,
+  "rows_in": 230297,
   "checks": {
     "schema": "PASS",
     "nulls": "PASS",
     "actions": "PASS",
     "duplicates": "PASS"
   },
-  "rows_out": 200297
+  "rows_out": 230297
 }
