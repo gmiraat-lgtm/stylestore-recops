@@ -48,6 +48,8 @@ def build_model(interactions: pd.DataFrame, top_k_neighbors: int, min_item_inter
         for dist, idx in zip(distances[row], indices[row]):
             if idx == row:
                 continue  # skip self
+            if 1.0 - dist <= 1e-9:
+                continue  # zero similarity = not a real neighbour
             sims.append((int(item_ids[idx]), float(1.0 - dist)))
         neighbors[int(item_ids[row])] = sims[: top_k_neighbors]
 
