@@ -1,0 +1,23 @@
+stages:
+  ingest:
+    cmd: python src/ingest.py
+    deps:
+    - data/raw/events.csv
+    - data/raw/products.csv
+    - src/ingest.py
+    params:
+    - ingest
+    outs:
+    - data/interim/events_ingested.csv
+  validate:
+    cmd: python src/validate.py
+    deps:
+    - data/interim/events_ingested.csv
+    - src/validate.py
+    params:
+    - validate
+    outs:
+    - data/interim/events_valid.csv
+    metrics:
+    - reports/validation.json:
+        cache: false

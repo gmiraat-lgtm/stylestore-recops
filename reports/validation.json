@@ -1,0 +1,10 @@
+{
+  "rows_in": 50000,
+  "checks": {
+    "schema": "PASS",
+    "nulls": "PASS",
+    "actions": "PASS",
+    "duplicates": "PASS"
+  },
+  "rows_out": 50000
+}

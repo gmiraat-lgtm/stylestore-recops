@@ -1,0 +1,59 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python src/ingest.py
+    deps:
+    - path: data/raw/events.csv
+      hash: md5
+      md5: 5357faa3e018592c5a478189c880cb08
+      size: 1989189
+    - path: data/raw/products.csv
+      hash: md5
+      md5: 9cf6bd2b2f3466d3d62b021f88264f2e
+      size: 40386853
+    - path: src/ingest.py
+      hash: md5
+      md5: 872e24a9b57d2099f597277401ad096e
+      size: 1138
+    params:
+      params.yaml:
+        ingest:
+          events_path: data/raw/events.csv
+          catalog_path: data/raw/products.csv
+          output: data/interim/events_ingested.csv
+    outs:
+    - path: data/interim/events_ingested.csv
+      hash: md5
+      md5: 822307844b00ba6405f736841270b6ca
+      size: 1989189
+  validate:
+    cmd: python src/validate.py
+    deps:
+    - path: data/interim/events_ingested.csv
+      hash: md5
+      md5: 822307844b00ba6405f736841270b6ca
+      size: 1989189
+    - path: src/validate.py
+      hash: md5
+      md5: aed7ccccfe1e5e62107579e41dca99a9
+      size: 2535
+    params:
+      params.yaml:
+        validate:
+          input: data/interim/events_ingested.csv
+          output: data/interim/events_valid.csv
+          report: reports/validation.json
+          allowed_actions:
+          - view
+          - click
+          - add_to_cart
+          - purchase
+    outs:
+    - path: data/interim/events_valid.csv
+      hash: md5
+      md5: 822307844b00ba6405f736841270b6ca
+      size: 1989189
+    - path: reports/validation.json
+      hash: md5
+      md5: 4ffd56394948f3f6b2b2c289d285421b
+      size: 162

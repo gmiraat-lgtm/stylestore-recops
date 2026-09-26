@@ -1,0 +1,30 @@
+ingest:
+  events_path: data/raw/events.csv
+  catalog_path: data/raw/products.csv
+  output: data/interim/events_ingested.csv
+
+validate:
+  input: data/interim/events_ingested.csv
+  output: data/interim/events_valid.csv
+  report: reports/validation.json
+  allowed_actions: [view, click, add_to_cart, purchase]
+
+features:
+  input: data/interim/events_valid.csv
+  output: data/processed/interactions.csv
+  action_weights:
+    view: 1.0
+    click: 2.0
+    add_to_cart: 3.0
+    purchase: 5.0
+
+train:
+  input: data/processed/interactions.csv
+  model_out: models/item_cf.pkl
+  top_k_neighbors: 50
+  min_item_interactions: 3
+
+evaluate:
+  k: 10
+  holdout_per_user: 3
+  metrics_out: reports/metrics.json
