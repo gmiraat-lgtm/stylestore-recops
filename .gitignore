@@ -1,0 +1,29 @@
+# Virtual environment
+venv/
+
+# Python junk
+__pycache__/
+*.pyc
+
+# MLflow local tracking
+mlruns/
+mlartifacts/
+
+# DVC internals (DVC manages its own ignores too, this is belt-and-braces)
+.dvc/cache/
+.dvc/tmp/
+
+# Data and models are DVC-tracked, not Git-tracked
+data/
+models/
+
+# Reports generated at runtime
+reports/generated/
+
+# OS / editor noise
+.vscode/
+Thumbs.db
+desktop.ini
+
+# Records are local only (screenshots, large)
+records/
