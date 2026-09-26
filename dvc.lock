@@ -57,3 +57,29 @@ stages:
       hash: md5
       md5: 4ffd56394948f3f6b2b2c289d285421b
       size: 162
+  features:
+    cmd: python src/build_features.py
+    deps:
+    - path: data/interim/events_valid.csv
+      hash: md5
+      md5: 822307844b00ba6405f736841270b6ca
+      size: 1989189
+    - path: src/build_features.py
+      hash: md5
+      md5: 7d70538af180251070d5eeeea8ee7050
+      size: 1407
+    params:
+      params.yaml:
+        features:
+          input: data/interim/events_valid.csv
+          output: data/processed/interactions.csv
+          action_weights:
+            view: 1.0
+            click: 2.0
+            add_to_cart: 3.0
+            purchase: 5.0
+    outs:
+    - path: data/processed/interactions.csv
+      hash: md5
+      md5: 0af3b97a21d5a421992dad086dcf34b1
+      size: 872467

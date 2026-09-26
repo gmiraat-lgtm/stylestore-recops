@@ -21,3 +21,12 @@ stages:
     metrics:
     - reports/validation.json:
         cache: false
+  features:
+    cmd: python src/build_features.py
+    deps:
+    - data/interim/events_valid.csv
+    - src/build_features.py
+    params:
+    - features
+    outs:
+    - data/processed/interactions.csv
