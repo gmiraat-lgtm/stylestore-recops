@@ -4,27 +4,26 @@ RecOps - Synthetic user interaction event simulator.
 Generates realistic e-commerce interaction events (view / click / add_to_cart /
 purchase) against the real StyleStore product catalog. Users are assigned to
 behavioural personas, and each persona favours particular category/gender
-segments of the catalog. Because the persona mix is passed on the command line,
-the distribution of incoming events can be shifted between runs - that is why
-this simulator doubles as a controllable drift generator for Phase 2.
+segments of the catalog. Within every persona segment, item popularity follows
+a Zipf distribution - a few bestsellers attract most interactions, exactly as
+in real e-commerce - hence the co-occurrence structure that collaborative
+filtering learns from actually exists in the data. Because the persona mix is
+passed on the command line, the distribution of incoming events can be shifted
+between runs - that is why this simulator doubles as a controllable drift
+generator for Phase 2.
 
 Usage:
-  python src/simulate_events.py --users 500 --events 50000 --days 30 --out data/raw/events.csv
-  python src/simulate_events.py --mix "sneakerhead:0.1,ethnic:0.4,western:0.3,formal:0.1,accessories:0.1" ...
+  python src/simulate_events.py --users 2000 --events 200000 --days 30
+  python src/simulate_events.py --mix "ethnic:0.5,formal:0.3,accessories:0.2" ...
 """
 
 import argparse
+import itertools
 import random
 from datetime import datetime, timedelta
 
 import pandas as pd
 
-# ---------------------------------------------------------------------------
-# Personas: each favours (gender, [categories]) slices of the real catalog.
-# exploration_rate = probability a user browses OUTSIDE their persona segment,
-# because real users are never 100% predictable - hence the model has to learn
-# preferences from noisy data, exactly as in production.
-# ---------------------------------------------------------------------------
 PERSONAS = {
     "sneakerhead":  {"gender": ["Men", "Unisex"],
                      "categories": ["Casual Shoes", "Sports Shoes", "Tshirts", "Flip Flops"]},
@@ -40,8 +39,6 @@ PERSONAS = {
 
 DEFAULT_MIX = "sneakerhead:0.25,ethnic:0.25,western:0.20,formal:0.15,accessories:0.15"
 
-# Action funnel: most interactions are views, purchases are rare - so the
-# feature stage can weight stronger signals more heavily later.
 ACTIONS = ["view", "click", "add_to_cart", "purchase"]
 ACTION_WEIGHTS = [0.62, 0.22, 0.10, 0.06]
 
@@ -49,7 +46,6 @@ EXPLORATION_RATE = 0.15  # chance of an event outside the persona's segment
 
 
 def parse_mix(mix_str):
-    """Parse 'name:weight,name:weight' into a normalised dict."""
     mix = {}
     for part in mix_str.split(","):
         name, weight = part.split(":")
@@ -61,43 +57,51 @@ def parse_mix(mix_str):
     return {k: v / total for k, v in mix.items()}
 
 
-def build_pools(catalog):
-    """Pre-compute the product_id pool for each persona (fast sampling)."""
+def build_pools(catalog, zipf_s):
+    """
+    For each persona, build (item_list, cumulative_weights) where the weight of
+    the item at popularity rank r is 1/(r+1)^s. The popularity ranking itself is
+    a seeded shuffle of the segment, so it is stable for a given --seed.
+    """
     pools = {}
     for name, spec in PERSONAS.items():
         subset = catalog[
             catalog["gender"].isin(spec["gender"])
             & catalog["category"].isin(spec["categories"])
         ]
-        pools[name] = subset["product_id"].tolist()
-        if not pools[name]:
+        ids = subset["product_id"].tolist()
+        if not ids:
             raise ValueError(f"Persona '{name}' matched no products - check categories.")
+        random.shuffle(ids)
+        weights = [1.0 / (rank + 1) ** zipf_s for rank in range(len(ids))]
+        pools[name] = (ids, list(itertools.accumulate(weights)))
     return pools
 
 
 def main():
     ap = argparse.ArgumentParser(description="RecOps synthetic event generator")
-    ap.add_argument("--users", type=int, default=500)
-    ap.add_argument("--events", type=int, default=50000)
+    ap.add_argument("--users", type=int, default=2000)
+    ap.add_argument("--events", type=int, default=200000)
     ap.add_argument("--days", type=int, default=30)
     ap.add_argument("--end-date", default="2026-09-26", help="Last day of the window (YYYY-MM-DD)")
     ap.add_argument("--mix", default=DEFAULT_MIX, help="Persona mix, e.g. 'ethnic:0.4,formal:0.6'")
+    ap.add_argument("--zipf", type=float, default=1.0,
+                    help="Zipf exponent for item popularity inside each persona segment")
     ap.add_argument("--out", default="data/raw/events.csv")
     ap.add_argument("--users-out", default="data/raw/users.csv",
-                    help="Ground-truth user->persona map (for validation only, never for training)")
+                    help="Ground-truth user->persona map (validation only, never for training)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--append", action="store_true",
-                    help="Append to existing events file instead of overwriting (used for drift batches)")
+                    help="Append to existing events file instead of overwriting (drift batches)")
     args = ap.parse_args()
 
     random.seed(args.seed)
 
     catalog = pd.read_csv("data/raw/products.csv")
-    pools = build_pools(catalog)
+    pools = build_pools(catalog, args.zipf)
     all_products = catalog["product_id"].tolist()
     mix = parse_mix(args.mix)
 
-    # Assign every user a persona according to the mix.
     persona_names = list(mix.keys())
     persona_weights = list(mix.values())
     users = {
@@ -115,11 +119,11 @@ def main():
         user_id = random.choice(user_ids)
         persona = users[user_id]
 
-        # Exploration: sometimes users wander outside their segment.
         if random.random() < EXPLORATION_RATE:
             product_id = random.choice(all_products)
         else:
-            product_id = random.choice(pools[persona])
+            ids, cum = pools[persona]
+            product_id = random.choices(ids, cum_weights=cum, k=1)[0]
 
         action = random.choices(ACTIONS, weights=ACTION_WEIGHTS, k=1)[0]
         ts = start + timedelta(seconds=random.randint(0, window_seconds))

@@ -22,8 +22,7 @@ train:
   input: data/processed/interactions.csv
   model_out: models/item_cf.pkl
   top_k_neighbors: 50
-  min_item_interactions: 3
-
+  min_item_interactions: 5
 evaluate:
   k: 10
   holdout_per_user: 3

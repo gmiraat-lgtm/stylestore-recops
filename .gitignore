@@ -8,6 +8,8 @@ __pycache__/
 # MLflow local tracking
 mlruns/
 mlartifacts/
+mlflow.db
+*.db
 
 # DVC internals (DVC manages its own ignores too, this is belt-and-braces)
 .dvc/cache/

@@ -42,3 +42,17 @@ stages:
     - models/item_cf.pkl
     - models/run_id.txt:
         cache: false
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - data/processed/interactions.csv
+    - data/raw/products.csv
+    - models/run_id.txt
+    - src/evaluate.py
+    - src/recommender.py
+    params:
+    - evaluate
+    - train
+    metrics:
+    - reports/metrics.json:
+        cache: false
