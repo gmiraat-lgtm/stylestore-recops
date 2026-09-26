@@ -13,9 +13,9 @@ mlartifacts/
 .dvc/cache/
 .dvc/tmp/
 
-# Data and models are DVC-tracked, not Git-tracked
-data/
-models/
+# Models are DVC-tracked; DVC writes its own .gitignore entries beside data files
+models/*
+!models/*.dvc
 
 # Reports generated at runtime
 reports/generated/
