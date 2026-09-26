@@ -20,7 +20,7 @@ models/*
 !models/*.dvc
 
 # Reports generated at runtime
-reports/generated/
+reports/generated/ab_events.csv
 
 # OS / editor noise
 .vscode/
@@ -29,3 +29,4 @@ desktop.ini
 
 # Records are local only (screenshots, large)
 records/
+
