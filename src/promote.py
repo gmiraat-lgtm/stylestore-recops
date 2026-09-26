@@ -2,12 +2,19 @@
 RecOps - Model Registry promotion gate.
 
 Registers the latest trained model (from models/run_id.txt) as a new version
-of the 'recops-item-cf' registered model, then decides whether it earns the
-'production' alias. The gate compares the candidate's category relevance and
-precision against the current production version: promote only if quality has
-not regressed. First-ever version is promoted unconditionally (bootstrap).
-Run with --force to promote regardless (manual override, still auditable in
-the registry history).
+of the 'recops-item-cf' registered model and assigns it an alias:
+
+  default            gate against current production metrics; promote to
+                     'production' only if quality has not regressed
+  --force            promote to 'production' unconditionally (audited)
+  --challenger       assign the 'challenger' alias instead - the version
+                     enters the A/B experiment, serving half of the traffic
+                     alongside the production champion, and is judged by
+                     LIVE engagement rather than offline metrics.
+
+The challenger path is the answer to the stale-champion problem documented
+in the project report: under drift, offline metrics of old and new models
+are not comparable, but online A/B comparison always is.
 """
 
 import argparse
@@ -18,7 +25,7 @@ from mlflow.exceptions import MlflowException
 
 MODEL_NAME = "recops-item-cf"
 ALIAS = "production"
-# Candidate must retain at least this fraction of production's metric values.
+CHALLENGER_ALIAS = "challenger"
 TOLERANCE = 0.95
 
 
@@ -29,25 +36,30 @@ def get_metric(client, run_id, key):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--force", action="store_true", help="Promote regardless of metrics")
+    ap.add_argument("--force", action="store_true", help="Promote to production regardless of metrics")
+    ap.add_argument("--challenger", action="store_true",
+                    help="Register as A/B challenger instead of gating for production")
     args = ap.parse_args()
 
     client = MlflowClient()
     run_id = Path("models/run_id.txt").read_text().strip()
 
-    # Ensure the registered model exists (no-op if it already does).
     try:
         client.create_registered_model(MODEL_NAME)
     except MlflowException:
         pass
 
-    # Register the candidate artifact as a new model version.
     run = client.get_run(run_id)
     source = f"{run.info.artifact_uri}/item_cf.pkl"
     version = client.create_model_version(MODEL_NAME, source=source, run_id=run_id).version
     print(f"Registered {MODEL_NAME} version {version} (run {run_id})")
 
-    # Find current production, if any.
+    if args.challenger:
+        client.set_registered_model_alias(MODEL_NAME, CHALLENGER_ALIAS, version)
+        print(f"ASSIGNED v{version} -> '{CHALLENGER_ALIAS}' - entering A/B experiment "
+              f"against the current production champion.")
+        return
+
     try:
         prod = client.get_model_version_by_alias(MODEL_NAME, ALIAS)
     except Exception:

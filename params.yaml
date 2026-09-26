@@ -21,7 +21,7 @@ features:
 train:
   input: data/processed/interactions.csv
   model_out: models/item_cf.pkl
-  top_k_neighbors: 50
+  top_k_neighbors: 80
   min_item_interactions: 5
 evaluate:
   k: 10

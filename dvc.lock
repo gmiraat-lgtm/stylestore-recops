@@ -103,16 +103,16 @@ stages:
         train:
           input: data/processed/interactions.csv
           model_out: models/item_cf.pkl
-          top_k_neighbors: 50
+          top_k_neighbors: 80
           min_item_interactions: 5
     outs:
     - path: models/item_cf.pkl
       hash: md5
-      md5: 1053910cd443f106127797cdbf370a0d
-      size: 6448433
+      md5: d4d6089deeea22eaa2e39ec7921ff939
+      size: 9333784
     - path: models/run_id.txt
       hash: md5
-      md5: 7862440f4ed87826e58ec9ec8271ca50
+      md5: f63463ecca769df3c8561111a75a44c7
       size: 32
   evaluate:
     cmd: python src/evaluate.py
@@ -127,7 +127,7 @@ stages:
       size: 40386853
     - path: models/run_id.txt
       hash: md5
-      md5: 7862440f4ed87826e58ec9ec8271ca50
+      md5: f63463ecca769df3c8561111a75a44c7
       size: 32
     - path: src/evaluate.py
       hash: md5
@@ -146,10 +146,10 @@ stages:
         train:
           input: data/processed/interactions.csv
           model_out: models/item_cf.pkl
-          top_k_neighbors: 50
+          top_k_neighbors: 80
           min_item_interactions: 5
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 614ff29b13d272c02629398a635c2909
-      size: 126
+      md5: c4e017c040832e0ad266548a1710ed30
+      size: 127
