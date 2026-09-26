@@ -1,0 +1,70 @@
+# RecOps - CI/CD model factory.
+#
+# Every push runs the complete quality chain on a clean machine:
+#   1. unit tests (recommender + simulator logic)
+#   2. full pipeline smoke run on a committed 2k-product sample
+#      (the runner cannot reach the local DVC remote, so CI proves the
+#      PIPELINE works end-to-end rather than reproducing the full dataset)
+#   3. metric sanity gate - the smoke model must show real personalization
+#   4. Docker image build (immutable-image pattern, model baked in)
+#   5. container smoke test - the image must actually serve /health
+#
+# A failure at any step blocks the run, so broken pipeline code or a
+# degenerate model can never look "green" on main.
+
+name: recops-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install CI dependencies
+        run: pip install pandas scikit-learn scipy numpy pyyaml mlflow flask pytest requests
+
+      - name: Unit tests
+        run: python -m pytest tests -v
+
+      - name: Pipeline smoke run on sample catalog
+        run: |
+          mkdir -p data/raw data/interim data/processed models reports
+          cp tests/fixtures/products_sample.csv data/raw/products.csv
+          python src/simulate_events.py --users 200 --events 5000 --days 14
+          python src/ingest.py
+          python src/validate.py
+          python src/build_features.py
+          python src/train.py
+          python src/evaluate.py
+
+      - name: Metric sanity gate
+        run: |
+          python - <<'PY'
+          import json
+          m = json.load(open("reports/metrics.json"))
+          print(json.dumps(m, indent=2))
+          assert m["users_evaluated"] > 50, "too few users evaluated"
+          assert m["category_relevance_at_10"] > 0.5, \
+              f"model not personalizing: relevance={m['category_relevance_at_10']}"
+          print("Metric gate PASSED")
+          PY
+
+      - name: Build Docker image
+        run: docker build --build-arg MODEL_VERSION=ci-${{ github.run_number }} -t recops-serving:ci-${{ github.run_number }} .
+
+      - name: Container smoke test
+        run: |
+          docker run -d --rm -p 8001:8001 --name recops recops-serving:ci-${{ github.run_number }}
+          sleep 8
+          curl -sf http://localhost:8001/health | tee health.json
+          grep -q '"status":"ok"' health.json || (echo "health check failed" && exit 1)
+          docker stop recops
