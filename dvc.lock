@@ -83,3 +83,34 @@ stages:
       hash: md5
       md5: 0af3b97a21d5a421992dad086dcf34b1
       size: 872467
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/interactions.csv
+      hash: md5
+      md5: 0af3b97a21d5a421992dad086dcf34b1
+      size: 872467
+    - path: src/recommender.py
+      hash: md5
+      md5: ba1ab933a7d44effdf0348ce9bbdfaea
+      size: 3603
+    - path: src/train.py
+      hash: md5
+      md5: 8492fd8ae99de7abe9e663e047329fac
+      size: 1958
+    params:
+      params.yaml:
+        train:
+          input: data/processed/interactions.csv
+          model_out: models/item_cf.pkl
+          top_k_neighbors: 50
+          min_item_interactions: 3
+    outs:
+    - path: models/item_cf.pkl
+      hash: md5
+      md5: bd7298f535fd777a5c8c7a62ba0b136f
+      size: 5657237
+    - path: models/run_id.txt
+      hash: md5
+      md5: 92d78353657b376e709d619706561e0c
+      size: 32

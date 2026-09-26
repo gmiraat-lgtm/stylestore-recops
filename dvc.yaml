@@ -30,3 +30,15 @@ stages:
     - features
     outs:
     - data/processed/interactions.csv
+  train:
+    cmd: python src/train.py
+    deps:
+    - data/processed/interactions.csv
+    - src/recommender.py
+    - src/train.py
+    params:
+    - train
+    outs:
+    - models/item_cf.pkl
+    - models/run_id.txt:
+        cache: false
