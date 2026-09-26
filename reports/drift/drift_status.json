@@ -1,7 +1,7 @@
 {
-  "batch": "data\\incoming\\batch_001.csv",
-  "drifted_columns_share": 0.5,
-  "drifted_columns_count": 2,
+  "batch": "data\\incoming\\batch_002.csv",
+  "drifted_columns_share": 0.0,
+  "drifted_columns_count": 0,
   "threshold": 0.3,
-  "drift_detected": true
+  "drift_detected": false
 }

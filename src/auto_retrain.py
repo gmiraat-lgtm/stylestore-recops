@@ -76,7 +76,7 @@ def main():
     run(["dvc", "repro"])
 
     # 5. Promotion gate (registers new version; promotes only if quality holds).
-        run([sys.executable, "src/promote.py", "--force"])
+    run([sys.executable, "src/promote.py", "--force"])
 
     # 6. Hot-reload serving so the storefront picks up the new production model.
     try:
