@@ -1,0 +1,37 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>A/B Experiment Report</title><style>
+ body { font-family: Georgia, 'Times New Roman', serif; max-width: 860px;
+        margin: 40px auto; color: #1f2937; line-height: 1.6; padding: 0 16px; }
+ h1 { font-size: 1.6em; } .muted { color: #6b7280; font-size: 0.9em; }
+ table { border-collapse: collapse; width: 100%; margin: 18px 0; }
+ td, th { border: 1px solid #d1d5db; padding: 10px; text-align: left; }
+ th { background: #f3f4f6; }
+ .lead { background: #ecfdf5; }
+ footer { margin-top: 30px; font-size: 0.85em; color: #6b7280; }
+</style></head><body>
+<h1>A/B Experiment Report - Champion vs Challenger</h1>
+<p class="muted">Generated 27 Oct 2026, 18:39 from the live
+shelf engagement log.</p>
+
+<h2>What this experiment is</h2>
+<p>Two recommendation models serve the storefront simultaneously: the production
+<b>champion</b> and a <b>challenger</b> candidate. Every user is deterministically
+assigned to one variant, so each shopper consistently sees one model's
+recommendations. An <i>impression</i> is one rendering of the "Recommended for you"
+shelf; a <i>click</i> is a shopper opening a recommended product. Click-through rate
+(clicks / impressions) measures which model produces recommendations shoppers
+actually want - a live judgement that stays valid even when offline metrics become
+incomparable under data drift.</p>
+
+<h2>Results so far</h2>
+<table>
+<tr><th>Variant</th><th>Impressions</th><th>Clicks</th><th>CTR</th></tr>
+<tr class="lead"><td>Champion (v11)</td><td>52</td><td>5</td><td>9.62%</td></tr>
+<tr><td>Challenger (v9)</td><td>1</td><td>0</td><td>0.00%</td></tr>
+</table>
+
+<h2>Reading and decision</h2>
+<p>On current data the <b>champion</b> shows the higher click-through rate. However, with fewer than 100 impressions per variant this difference is anecdotal, not statistically meaningful - the correct operational decision is to keep the experiment running and let more traffic accumulate before promoting either model.</p>
+
+<footer>RecOps - TE7940 MLOps Lab ESE Project - Miraat Gupta | 23070126073 | AIML - A3.</footer>
+</body></html>
