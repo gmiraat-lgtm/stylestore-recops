@@ -1,5 +1,5 @@
 {
-  "batch": "data\\incoming\\batch_002.csv",
+  "batch": "data\\incoming\\processed\\batch_002.csv",
   "drifted_columns_share": 0.0,
   "drifted_columns_count": 0,
   "threshold": 0.3,

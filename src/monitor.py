@@ -4,11 +4,14 @@ RecOps - Drift monitor (Evidently).
 Compares an incoming production event batch against the reference data the
 production model was trained on. Events are enriched with catalog attributes
 (category, gender, price) so the comparison captures WHAT users engage with,
-not just raw ids. Produces THREE artifacts: Evidently's full technical HTML
-report, a machine-readable drift_status.json, and a plain-language
-drift_summary.html written for non-technical readers, with download links to
-the underlying data (Report Center artifact #1). Exits 0 (no drift) or 42
-(drift detected) so an orchestrator can branch on the verdict.
+not just raw ids. Metrics are declared explicitly (DriftedColumnsCount plus
+one ValueDrift per monitored column, in fixed order) because Evidently
+0.7.x's serialized results carry no metric identifiers - positional mapping
+against the declared order is the version-stable way to recover per-column
+scores. Produces Evidently's technical HTML report, a machine-readable
+drift_status.json, and a plain-language drift_summary.html (Report Center
+artifact #1). Exits 0 (no drift) or 42 (drift detected) so an orchestrator
+can branch on the verdict.
 
 Usage: python src/monitor.py --batch data/incoming/batch_001.csv
 """
@@ -16,7 +19,6 @@ Usage: python src/monitor.py --batch data/incoming/batch_001.csv
 import argparse
 import html
 import json
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +27,7 @@ import pandas as pd
 import yaml
 
 from evidently import Report
-from evidently.presets import DataDriftPreset
+from evidently.metrics import DriftedColumnsCount, ValueDrift
 
 FEATURES = ["action", "category", "gender", "price"]
 
@@ -52,18 +54,24 @@ def enrich(events: pd.DataFrame, catalog: pd.DataFrame) -> pd.DataFrame:
 
 
 def parse_results(result_dict: dict):
-    """Pull dataset share plus per-column drift scores out of Evidently's result."""
+    """Positionally recover (share, count, per-column scores) from the result.
+
+    The report is built as [DriftedColumnsCount, ValueDrift(action),
+    ValueDrift(category), ValueDrift(gender), ValueDrift(price)], so the
+    first metric value is the {count, share} dict and the next four are the
+    column scores in FEATURES order.
+    """
     share, count, columns = None, None, {}
-    for metric in result_dict.get("metrics", []):
-        mid = str(metric.get("metric_id", ""))
-        value = metric.get("value")
-        if isinstance(value, dict) and "share" in value:
-            share = float(value["share"])
-            count = int(value.get("count", -1))
-        else:
-            m = re.search(r"column=([A-Za-z_]+)", mid)
-            if m and isinstance(value, (int, float)):
-                columns[m.group(1)] = float(value)
+    values = [m.get("value") for m in result_dict.get("metrics", [])]
+    scores = []
+    for v in values:
+        if isinstance(v, dict) and "share" in v:
+            share = float(v["share"])
+            count = int(v.get("count", -1))
+        elif isinstance(v, (int, float)):
+            scores.append(float(v))
+    for col, score in zip(FEATURES, scores):
+        columns[col] = score
     return share, count, columns
 
 
@@ -93,8 +101,9 @@ def write_summary_html(path, status, columns, n_ref, n_cur, batch_path, cfg):
         </tr>""")
 
     links = f"""
-      <li><a href="../../{batch_path}">Incoming batch events (CSV)</a> - the raw week of traffic that was analysed</li>
-      <li><a href="../../{cfg['reference']}">Reference training events (CSV)</a> - what the current model learned from</li>
+      <li>Incoming batch events (CSV): <span class="mono">{html.escape(str(batch_path))}</span>
+          (archived to <span class="mono">data/incoming/processed/</span> after handling)</li>
+      <li>Reference training events (CSV): <span class="mono">{html.escape(cfg['reference'])}</span></li>
       <li><a href="drift_status.json">Machine-readable verdict (JSON)</a> - used by the automation</li>
       <li><a href="drift_report.html">Full technical drift report (Evidently)</a> - per-column statistics and distribution charts</li>
     """
@@ -110,6 +119,7 @@ def write_summary_html(path, status, columns, n_ref, n_cur, batch_path, cfg):
  table {{ border-collapse: collapse; width: 100%; margin: 18px 0; }}
  td, th {{ border: 1px solid #d1d5db; padding: 10px; text-align: left; vertical-align: top; }}
  th {{ background: #f3f4f6; }} .score {{ font-family: monospace; }}
+ .mono {{ font-family: monospace; font-size: 0.9em; }}
  footer {{ margin-top: 30px; font-size: 0.85em; color: #6b7280; }}
 </style></head><body>
 <h1>Customer Behaviour Drift Summary</h1>
@@ -140,7 +150,7 @@ an alert threshold of {status['threshold']:.0%}.</p>
 <h2>What happens next</h2>
 <p>{action}</p>
 
-<h2>Download the evidence</h2>
+<h2>The evidence</h2>
 <ul>{links}</ul>
 
 <footer>RecOps - TE7940 MLOps Lab ESE Project - Miraat Gupta | 23070126073 | AIML - A3.
@@ -163,7 +173,7 @@ def main():
         reference = reference.sample(cfg["reference_sample"], random_state=42)
     current = enrich(pd.read_csv(args.batch), catalog)
 
-    report = Report([DataDriftPreset()])
+    report = Report([DriftedColumnsCount()] + [ValueDrift(column=c) for c in FEATURES])
     result = report.run(current_data=current, reference_data=reference)
 
     Path(cfg["report_html"]).parent.mkdir(parents=True, exist_ok=True)

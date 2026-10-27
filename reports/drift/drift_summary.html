@@ -9,11 +9,12 @@
  table { border-collapse: collapse; width: 100%; margin: 18px 0; }
  td, th { border: 1px solid #d1d5db; padding: 10px; text-align: left; vertical-align: top; }
  th { background: #f3f4f6; } .score { font-family: monospace; }
+ .mono { font-family: monospace; font-size: 0.9em; }
  footer { margin-top: 30px; font-size: 0.85em; color: #6b7280; }
 </style></head><body>
 <h1>Customer Behaviour Drift Summary</h1>
-<p class="muted">RecOps monitoring - generated 26 Sep 2026, 17:34
- - batch: data/incoming/batch_002.csv</p>
+<p class="muted">RecOps monitoring - generated 27 Oct 2026, 16:19
+ - batch: data/incoming/processed/batch_002.csv</p>
 
 <div class="verdict">NO SIGNIFICANT CHANGE - the current model still matches customer behaviour</div>
 
@@ -31,6 +32,26 @@ as a noticeable shift.</p>
 <table>
 <tr><th>Aspect of customer behaviour</th><th>Change score</th><th>Reading</th></tr>
 
+        <tr>
+          <td><b>Product categories browsed</b><br><span class="muted">Which kinds of products (shoes, kurtas, watches...) customers are engaging with.</span></td>
+          <td class="score">0.044</td>
+          <td>essentially unchanged</td>
+        </tr>
+        <tr>
+          <td><b>Price range of viewed products</b><br><span class="muted">How expensive the products customers look at are.</span></td>
+          <td class="score">0.028</td>
+          <td>essentially unchanged</td>
+        </tr>
+        <tr>
+          <td><b>Gender section shopped</b><br><span class="muted">Whether activity concentrates in Men&#x27;s, Women&#x27;s, Unisex or Kids sections.</span></td>
+          <td class="score">0.013</td>
+          <td>essentially unchanged</td>
+        </tr>
+        <tr>
+          <td><b>Shopping behaviour funnel</b><br><span class="muted">The mix of viewing, clicking, adding to cart and purchasing.</span></td>
+          <td class="score">0.002</td>
+          <td>essentially unchanged</td>
+        </tr>
 </table>
 <p>Overall, 0 of 4 monitored aspects drifted beyond
 Evidently's statistical test - a share of 0%, against
@@ -39,10 +60,11 @@ an alert threshold of 30%.</p>
 <h2>What happens next</h2>
 <p>Nothing needs to happen. Retraining on every batch would waste computation without improving recommendations, so the system deliberately stays put.</p>
 
-<h2>Download the evidence</h2>
+<h2>The evidence</h2>
 <ul>
-      <li><a href="../../data/incoming/batch_002.csv">Incoming batch events (CSV)</a> - the raw week of traffic that was analysed</li>
-      <li><a href="../../data/interim/events_valid.csv">Reference training events (CSV)</a> - what the current model learned from</li>
+      <li>Incoming batch events (CSV): <span class="mono">data/incoming/processed/batch_002.csv</span>
+          (archived to <span class="mono">data/incoming/processed/</span> after handling)</li>
+      <li>Reference training events (CSV): <span class="mono">data/interim/events_valid.csv</span></li>
       <li><a href="drift_status.json">Machine-readable verdict (JSON)</a> - used by the automation</li>
       <li><a href="drift_report.html">Full technical drift report (Evidently)</a> - per-column statistics and distribution charts</li>
     </ul>
