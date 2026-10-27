@@ -4,8 +4,8 @@
  body { font-family: Georgia, 'Times New Roman', serif; max-width: 860px;
         margin: 40px auto; color: #1f2937; line-height: 1.6; padding: 0 16px; }
  h1 { font-size: 1.6em; } .muted { color: #6b7280; font-size: 0.9em; }
- .verdict { border-left: 6px solid #166534; background: #f9fafb;
-            padding: 12px 18px; font-weight: bold; color: #166534; }
+ .verdict { border-left: 6px solid #b91c1c; background: #f9fafb;
+            padding: 12px 18px; font-weight: bold; color: #b91c1c; }
  table { border-collapse: collapse; width: 100%; margin: 18px 0; }
  td, th { border: 1px solid #d1d5db; padding: 10px; text-align: left; vertical-align: top; }
  th { background: #f3f4f6; } .score { font-family: monospace; }
@@ -13,10 +13,10 @@
  footer { margin-top: 30px; font-size: 0.85em; color: #6b7280; }
 </style></head><body>
 <h1>Customer Behaviour Drift Summary</h1>
-<p class="muted">RecOps monitoring - generated 27 Oct 2026, 16:28
- - batch: data/incoming/processed/batch_002.csv</p>
+<p class="muted">RecOps monitoring - generated 27 Oct 2026, 17:21
+ - batch: data/incoming/batch_004.csv</p>
 
-<div class="verdict">NO SIGNIFICANT CHANGE - the current model still matches customer behaviour</div>
+<div class="verdict">CHANGE DETECTED - the model's picture of customers is going stale</div>
 
 <h2>What was checked, in plain terms</h2>
 <p>A recommendation model is only as good as its understanding of current customer
@@ -34,36 +34,36 @@ as a noticeable shift.</p>
 
         <tr>
           <td><b>Product categories browsed</b><br><span class="muted">Which kinds of products (shoes, kurtas, watches...) customers are engaging with.</span></td>
-          <td class="score">0.044</td>
-          <td>essentially unchanged</td>
-        </tr>
-        <tr>
-          <td><b>Price range of viewed products</b><br><span class="muted">How expensive the products customers look at are.</span></td>
-          <td class="score">0.028</td>
-          <td>essentially unchanged</td>
+          <td class="score">0.289</td>
+          <td>changed noticeably</td>
         </tr>
         <tr>
           <td><b>Gender section shopped</b><br><span class="muted">Whether activity concentrates in Men&#x27;s, Women&#x27;s, Unisex or Kids sections.</span></td>
-          <td class="score">0.013</td>
-          <td>essentially unchanged</td>
+          <td class="score">0.150</td>
+          <td>changed noticeably</td>
+        </tr>
+        <tr>
+          <td><b>Price range of viewed products</b><br><span class="muted">How expensive the products customers look at are.</span></td>
+          <td class="score">0.132</td>
+          <td>changed noticeably</td>
         </tr>
         <tr>
           <td><b>Shopping behaviour funnel</b><br><span class="muted">The mix of viewing, clicking, adding to cart and purchasing.</span></td>
-          <td class="score">0.002</td>
+          <td class="score">0.005</td>
           <td>essentially unchanged</td>
         </tr>
 </table>
-<p>Overall, 0 of 4 monitored aspects drifted beyond
-Evidently's statistical test - a share of 0%, against
+<p>Overall, 3 of 4 monitored aspects drifted beyond
+Evidently's statistical test - a share of 75%, against
 an alert threshold of 30%.</p>
 
 <h2>What happens next</h2>
-<p>Nothing needs to happen. Retraining on every batch would waste computation without improving recommendations, so the system deliberately stays put.</p>
+<p>Because the change crossed the alert threshold, the system automatically retrains the recommendation model on data that includes this new behaviour, checks the new model's quality against the old one, and only then puts it live on the storefront. No engineer needs to intervene.</p>
 
 <h2>The evidence</h2>
 <ul>
-      <li><a href="batch_002.csv">Incoming batch events (CSV)</a> - the raw week of traffic analysed
-          (<span class="mono">data/incoming/processed/batch_002.csv</span>)</li>
+      <li><a href="batch_004.csv">Incoming batch events (CSV)</a> - the raw week of traffic analysed
+          (<span class="mono">data/incoming/batch_004.csv</span>)</li>
       <li><a href="events_valid.csv">Reference training events (CSV)</a> - what the current model learned from</li>
       <li><a href="drift_status.json">Machine-readable verdict (JSON)</a> - used by the automation</li>
       <li><a href="drift_report.html">Full technical drift report (Evidently)</a> - per-column statistics and distribution charts</li>

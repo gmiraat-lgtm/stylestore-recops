@@ -5,8 +5,8 @@ stages:
     deps:
     - path: data/raw/events.csv
       hash: md5
-      md5: 4edf0f7cd40a59422403aeff428f1a8a
-      size: 9150555
+      md5: f96c4ef57fe819abdc967a3a0f416f34
+      size: 10375522
     - path: data/raw/products.csv
       hash: md5
       md5: 9cf6bd2b2f3466d3d62b021f88264f2e
@@ -24,15 +24,15 @@ stages:
     outs:
     - path: data/interim/events_ingested.csv
       hash: md5
-      md5: 3c258dec35b568b917c6beba80c57241
-      size: 9150555
+      md5: cab90e9b18b2b002c0901d33412e8ceb
+      size: 10375522
   validate:
     cmd: python src/validate.py
     deps:
     - path: data/interim/events_ingested.csv
       hash: md5
-      md5: 3c258dec35b568b917c6beba80c57241
-      size: 9150555
+      md5: cab90e9b18b2b002c0901d33412e8ceb
+      size: 10375522
     - path: src/validate.py
       hash: md5
       md5: aed7ccccfe1e5e62107579e41dca99a9
@@ -51,19 +51,19 @@ stages:
     outs:
     - path: data/interim/events_valid.csv
       hash: md5
-      md5: 3c258dec35b568b917c6beba80c57241
-      size: 9150555
+      md5: cab90e9b18b2b002c0901d33412e8ceb
+      size: 10375522
     - path: reports/validation.json
       hash: md5
-      md5: a57bec3038e5bf3b7da650be1adde3d6
+      md5: 72a60d8683ae0869df5b5d5a6b5e9559
       size: 164
   features:
     cmd: python src/build_features.py
     deps:
     - path: data/interim/events_valid.csv
       hash: md5
-      md5: 3c258dec35b568b917c6beba80c57241
-      size: 9150555
+      md5: cab90e9b18b2b002c0901d33412e8ceb
+      size: 10375522
     - path: src/build_features.py
       hash: md5
       md5: 7d70538af180251070d5eeeea8ee7050
@@ -81,15 +81,15 @@ stages:
     outs:
     - path: data/processed/interactions.csv
       hash: md5
-      md5: 6d1219bc690760360c21543cd26a821a
-      size: 2951618
+      md5: c0db7a5ac8818ba158787017bea8c063
+      size: 3436163
   train:
     cmd: python src/train.py
     deps:
     - path: data/processed/interactions.csv
       hash: md5
-      md5: 6d1219bc690760360c21543cd26a821a
-      size: 2951618
+      md5: c0db7a5ac8818ba158787017bea8c063
+      size: 3436163
     - path: src/recommender.py
       hash: md5
       md5: ec7e4d343ac92ee9a32d18f66af2127d
@@ -108,26 +108,26 @@ stages:
     outs:
     - path: models/item_cf.pkl
       hash: md5
-      md5: d4d6089deeea22eaa2e39ec7921ff939
-      size: 9333784
+      md5: 211f7428c8c21b6f4d9b0e415225ae05
+      size: 11133098
     - path: models/run_id.txt
       hash: md5
-      md5: f63463ecca769df3c8561111a75a44c7
+      md5: 99083f97975710322237bc32e187015f
       size: 32
   evaluate:
     cmd: python src/evaluate.py
     deps:
     - path: data/processed/interactions.csv
       hash: md5
-      md5: 6d1219bc690760360c21543cd26a821a
-      size: 2951618
+      md5: c0db7a5ac8818ba158787017bea8c063
+      size: 3436163
     - path: data/raw/products.csv
       hash: md5
       md5: 9cf6bd2b2f3466d3d62b021f88264f2e
       size: 40386853
     - path: models/run_id.txt
       hash: md5
-      md5: f63463ecca769df3c8561111a75a44c7
+      md5: 99083f97975710322237bc32e187015f
       size: 32
     - path: src/evaluate.py
       hash: md5
@@ -151,5 +151,5 @@ stages:
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: c4e017c040832e0ad266548a1710ed30
-      size: 127
+      md5: 8c044e1e9adbd4306407c16e858c68ef
+      size: 124
