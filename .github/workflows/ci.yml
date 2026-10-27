@@ -8,9 +8,12 @@
 #   3. metric sanity gate - the smoke model must show real personalization
 #   4. Docker image build (immutable-image pattern, model baked in)
 #   5. container smoke test - the image must actually serve /health
+#   6. push of the verified image to the container registry (Docker Hub),
+#      from which the EC2 instance pulls what it serves - the faculty
+#      architecture's CI -> registry -> cloud host chain.
 #
 # A failure at any step blocks the run, so broken pipeline code or a
-# degenerate model can never look "green" on main.
+# degenerate model can never look "green" on main or reach the registry.
 
 name: recops-ci
 
@@ -68,3 +71,15 @@ jobs:
           curl -sf http://localhost:8001/health | tee health.json
           grep -q '"status":"ok"' health.json || (echo "health check failed" && exit 1)
           docker stop recops
+
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push'
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Push image to Docker Hub
+        if: github.event_name == 'push'
+        run: |
+          docker tag recops-serving:ci-${{ github.run_number }} ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:ci-${{ github.run_number }}
+          docker tag recops-serving:ci-${{ github.run_number }} ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:ci-${{ github.run_number }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:latest
