@@ -54,3 +54,8 @@ incomparable under drift (stale-champion problem).
 - Blank page / "recops offline" -> one of the 3 services died; restart it, refresh.
 - Gate blocks under drift -> python src\promote.py --force (stale-champion policy, see report).
 - Batch numbers: use the next unused batch_XXX; end-date = any later date.
+
+## Corrections from dry run (27 Oct)
+- Batch numbering: next free batch is batch_005; end-date must be later than the previous batch's.
+- Drift demo batches must use a mix the model has NOT absorbed yet. Ethnic-heavy no longer triggers (merged in Sep). Known-good novel mix: --mix "western:0.65,accessories:0.35". After each drift demo, that mix is absorbed too - pick a new one next time (e.g. formal-heavy or kids-heavy).
+- Demo A: inject a persona OPPOSITE to whatever the shelf currently shows.
