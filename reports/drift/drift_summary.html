@@ -13,7 +13,7 @@
  footer { margin-top: 30px; font-size: 0.85em; color: #6b7280; }
 </style></head><body>
 <h1>Customer Behaviour Drift Summary</h1>
-<p class="muted">RecOps monitoring - generated 27 Oct 2026, 16:19
+<p class="muted">RecOps monitoring - generated 27 Oct 2026, 16:28
  - batch: data/incoming/processed/batch_002.csv</p>
 
 <div class="verdict">NO SIGNIFICANT CHANGE - the current model still matches customer behaviour</div>
@@ -62,9 +62,9 @@ an alert threshold of 30%.</p>
 
 <h2>The evidence</h2>
 <ul>
-      <li>Incoming batch events (CSV): <span class="mono">data/incoming/processed/batch_002.csv</span>
-          (archived to <span class="mono">data/incoming/processed/</span> after handling)</li>
-      <li>Reference training events (CSV): <span class="mono">data/interim/events_valid.csv</span></li>
+      <li><a href="batch_002.csv">Incoming batch events (CSV)</a> - the raw week of traffic analysed
+          (<span class="mono">data/incoming/processed/batch_002.csv</span>)</li>
+      <li><a href="events_valid.csv">Reference training events (CSV)</a> - what the current model learned from</li>
       <li><a href="drift_status.json">Machine-readable verdict (JSON)</a> - used by the automation</li>
       <li><a href="drift_report.html">Full technical drift report (Evidently)</a> - per-column statistics and distribution charts</li>
     </ul>

@@ -100,10 +100,12 @@ def write_summary_html(path, status, columns, n_ref, n_cur, batch_path, cfg):
           <td>{word}</td>
         </tr>""")
 
+    batch_name = Path(batch_path).name
+    ref_name = Path(cfg["reference"]).name
     links = f"""
-      <li>Incoming batch events (CSV): <span class="mono">{html.escape(str(batch_path))}</span>
-          (archived to <span class="mono">data/incoming/processed/</span> after handling)</li>
-      <li>Reference training events (CSV): <span class="mono">{html.escape(cfg['reference'])}</span></li>
+      <li><a href="{batch_name}">Incoming batch events (CSV)</a> - the raw week of traffic analysed
+          (<span class="mono">{html.escape(str(batch_path))}</span>)</li>
+      <li><a href="{ref_name}">Reference training events (CSV)</a> - what the current model learned from</li>
       <li><a href="drift_status.json">Machine-readable verdict (JSON)</a> - used by the automation</li>
       <li><a href="drift_report.html">Full technical drift report (Evidently)</a> - per-column statistics and distribution charts</li>
     """

@@ -208,7 +208,9 @@ def ops_versions():
 
 @app.get("/reports/<path:name>")
 def reports(name):
-    for base in (ROOT / "reports" / "generated", ROOT / "reports" / "drift"):
+    for base in (ROOT / "reports" / "generated", ROOT / "reports" / "drift",
+                 ROOT / "data" / "incoming" / "processed",
+                 ROOT / "data" / "incoming", ROOT / "data" / "interim"):
         if (base / name).exists():
             return send_from_directory(base, name)
     return jsonify({"error": f"report '{name}' not found"}), 404
