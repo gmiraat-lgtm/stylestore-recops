@@ -11,6 +11,9 @@
 #   6. push of the verified image to the container registry (Docker Hub),
 #      from which the EC2 instance pulls what it serves - the faculty
 #      architecture's CI -> registry -> cloud host chain.
+#   7. continuous deployment: the runner logs into the EC2 instance over SSH,
+#      replaces the serving container with this run's exact image tag, and
+#      verifies over the public internet that the new version is live.
 #
 # A failure at any step blocks the run, so broken pipeline code or a
 # degenerate model can never look "green" on main or reach the registry.
@@ -83,3 +86,35 @@ jobs:
           docker tag recops-serving:ci-${{ github.run_number }} ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:ci-${{ github.run_number }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:latest
+
+      - name: Deploy to AWS EC2 (continuous deployment)
+        if: github.event_name == 'push'
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:ci-${{ github.run_number }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "$EC2_USER@$EC2_HOST" "
+            set -e
+            sudo docker pull $IMAGE
+            sudo docker rm -f recops || true
+            sudo docker run -d --restart unless-stopped -p 8001:8001 --name recops $IMAGE
+            sudo docker image prune -af
+          "
+
+      - name: Verify live deployment on the public endpoint
+        if: github.event_name == 'push'
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          for i in 1 2 3 4 5 6; do
+            curl -sf "http://$EC2_HOST:8001/health" -o live.json && break
+            sleep 5
+          done
+          cat live.json
+          grep -q "ci-${{ github.run_number }}" live.json || (echo "live version mismatch" && exit 1)
+          echo "Deployed ci-${{ github.run_number }} is live on EC2"
