@@ -1,6 +1,8 @@
 # RecOps - CI/CD model factory.
 #
 # Every push runs the complete quality chain on a clean machine:
+#   0. preflight (push only): the deploy key and EC2 login are checked first,
+#      so a credential problem fails within seconds, not after the build
 #   1. unit tests (recommender + simulator logic)
 #   2. full pipeline smoke run on a committed 2k-product sample
 #      (the runner cannot reach the local DVC remote, so CI proves the
@@ -30,6 +32,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Preflight - deploy key and EC2 login (fails fast)
+        if: github.event_name == 'push'
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          HOST=$(printf '%s' "$EC2_HOST" | tr -d '[:space:]')
+          LOGIN=$(printf '%s' "$EC2_USER" | tr -d '[:space:]')
+          [ -n "$HOST" ] || { echo "::error::Secret EC2_HOST is missing or empty"; exit 1; }
+          [ -n "$LOGIN" ] || { echo "::error::Secret EC2_USER is missing or empty"; exit 1; }
+          [ -n "$EC2_SSH_KEY" ] || { echo "::error::Secret EC2_SSH_KEY is missing or empty"; exit 1; }
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          if printf '%s' "$EC2_SSH_KEY" | grep -q '^[[:space:]]*ssh-\(ed25519\|rsa\)'; then
+            echo "::error::Secret EC2_SSH_KEY holds the PUBLIC key (ssh-ed25519 ...) - it must hold the PRIVATE key"; exit 1
+          fi
+          if printf '%s' "$EC2_SSH_KEY" | grep -q "BEGIN OPENSSH PRIVATE KEY"; then
+            FORMAT="multi-line text"
+            printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+              | sed -n '/BEGIN OPENSSH PRIVATE KEY/,/END OPENSSH PRIVATE KEY/p' | sed '/^$/d' > ~/.ssh/deploy_key
+          else
+            FORMAT="single-line base64"
+            printf '%s' "$EC2_SSH_KEY" | tr -d '[:space:]' | base64 -d 2>/dev/null | tr -d '\r' > ~/.ssh/deploy_key || true
+          fi
+          chmod 600 ~/.ssh/deploy_key
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > ~/.ssh/deploy_key.pub 2>/dev/null; then
+            LINES=$(wc -l < ~/.ssh/deploy_key)
+            B=no; grep -q "BEGIN OPENSSH PRIVATE KEY" ~/.ssh/deploy_key && B=yes
+            E=no; grep -q "END OPENSSH PRIVATE KEY" ~/.ssh/deploy_key && E=yes
+            echo "::error::Secret EC2_SSH_KEY (read as $FORMAT) is not a usable private key - lines: $LINES, BEGIN marker: $B, END marker: $E"
+            exit 1
+          fi
+          echo "Key read as $FORMAT, fingerprint $(ssh-keygen -lf ~/.ssh/deploy_key.pub | awk '{print $2}')"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 "$LOGIN@$HOST" true \
+            || { echo "::error::EC2 refused the login - the public half of this key is not in ~/.ssh/authorized_keys on the instance"; exit 1; }
+          echo "Preflight PASSED - EC2 login works"
 
       - uses: actions/setup-python@v5
         with:
@@ -90,23 +129,14 @@ jobs:
       - name: Deploy to AWS EC2 (continuous deployment)
         if: github.event_name == 'push'
         env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
           IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/recops-serving:ci-${{ github.run_number }}
         run: |
           HOST=$(printf '%s' "$EC2_HOST" | tr -d '[:space:]')
           LOGIN=$(printf '%s' "$EC2_USER" | tr -d '[:space:]')
-          [ -n "$HOST" ] || { echo "::error::Secret EC2_HOST is missing or empty"; exit 1; }
-          [ -n "$LOGIN" ] || { echo "::error::Secret EC2_USER is missing or empty"; exit 1; }
-          [ -n "$EC2_SSH_KEY" ] || { echo "::error::Secret EC2_SSH_KEY is missing or empty"; exit 1; }
-          mkdir -p ~/.ssh
-          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null || { echo "::error::Secret EC2_SSH_KEY is not a valid private key - re-paste the whole key including the BEGIN and END lines"; exit 1; }
-          SSH="ssh -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20"
-          $SSH "$LOGIN@$HOST" true || { echo "::error::EC2 refused the login - the public deploy key is not in ~/.ssh/authorized_keys on the instance"; exit 1; }
-          $SSH "$LOGIN@$HOST" "set -e; sudo docker pull $IMAGE; sudo docker rm -f recops || true; sudo docker run -d --restart unless-stopped -p 8001:8001 --name recops $IMAGE; sudo docker image prune -af"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 "$LOGIN@$HOST" \
+            "set -e; sudo docker pull $IMAGE; sudo docker rm -f recops || true; sudo docker run -d --restart unless-stopped -p 8001:8001 --name recops $IMAGE; sudo docker image prune -af"
           echo "Container replaced with $IMAGE"
 
       - name: Verify live deployment on the public endpoint
