@@ -1,4 +1,4 @@
-"""
+﻿"""
 RecOps - Model Registry promotion gate.
 
 Registers the latest trained model (from models/run_id.txt) as a new version
@@ -89,3 +89,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # Report Center hook: every registry change refreshes all model cards and
+    # the quality report, so no version can ever exist without its card.
+    # Runs as a separate process - a report failure never blocks a promotion.
+    import subprocess
+    import sys
+    subprocess.run([sys.executable, "src/refresh_reports.py"])
